@@ -1,22 +1,26 @@
 // ═══════════════════════════════════════════════════════
-// PATCH /api/notifications/[id]  —  개별 알림 읽음 처리
+// GET /api/news?category=corn  —  뉴스 조회
 //
-// is_read 0 → 1 업데이트
-// AND user_id = ? 로 본인 알림만 처리 가능
+// category 파라미터 없으면 전체 뉴스 반환
+// category 있으면 해당 카테고리만 필터링
 // ═══════════════════════════════════════════════════════
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getUser } from '@/lib/auth';
 
-export async function PATCH(request, { params }) {
+export async function GET(request) {
   const user = getUser(request);
   if (!user) return NextResponse.json({ error: '인증 필요' }, { status: 401 });
 
-  const { id } = await params;
+  const { searchParams } = new URL(request.url);
+  const category = searchParams.get('category');
 
-  await pool.execute(
-    'UPDATE notifications SET is_read=1 WHERE id=? AND user_id=?',
-    [id, user.id]
-  );
-  return NextResponse.json({ success: true });
+  const [rows] = category
+    ? await pool.execute(
+        'SELECT * FROM news WHERE category = ? ORDER BY created_at DESC',
+        [category]
+      )
+    : await pool.execute('SELECT * FROM news ORDER BY created_at DESC');
+
+  return NextResponse.json({ news: rows });
 }

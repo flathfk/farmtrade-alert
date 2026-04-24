@@ -1,22 +1,20 @@
 // ═══════════════════════════════════════════════════════
-// PATCH /api/notifications/[id]  —  개별 알림 읽음 처리
+// PATCH /api/notifications/read-all  —  전체 알림 읽음 처리
 //
-// is_read 0 → 1 업데이트
-// AND user_id = ? 로 본인 알림만 처리 가능
+// 알림 페이지 진입 시 호출
+// 해당 유저의 모든 is_read=0 알림을 is_read=1로 일괄 업데이트
 // ═══════════════════════════════════════════════════════
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getUser } from '@/lib/auth';
 
-export async function PATCH(request, { params }) {
+export async function PATCH(request) {
   const user = getUser(request);
   if (!user) return NextResponse.json({ error: '인증 필요' }, { status: 401 });
 
-  const { id } = await params;
-
   await pool.execute(
-    'UPDATE notifications SET is_read=1 WHERE id=? AND user_id=?',
-    [id, user.id]
+    'UPDATE notifications SET is_read = 1 WHERE user_id = ?',
+    [user.id]
   );
   return NextResponse.json({ success: true });
 }

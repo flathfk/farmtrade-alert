@@ -1,4 +1,14 @@
-
+// ═══════════════════════════════════════════════════════
+// POST /api/auth/register  —  회원가입
+//
+// 처리 순서:
+//   1. 필수 필드 검증
+//   2. bcrypt로 비밀번호 단방향 암호화 (salt rounds: 10)
+//   3. DB에 유저 저장
+//   4. 가입 즉시 JWT 발급 → 바로 로그인 상태로 전환
+//
+// ER_DUP_ENTRY: username 또는 email UNIQUE 제약 위반 시 409 반환
+// ═══════════════════════════════════════════════════════
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import pool from '@/lib/db';
@@ -13,6 +23,7 @@ export async function POST(request) {
     }
 
     const hash = await bcrypt.hash(password, 10);
+
     const [result] = await pool.execute(
       'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
       [username, email, hash]

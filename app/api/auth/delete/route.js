@@ -1,22 +1,18 @@
 // ═══════════════════════════════════════════════════════
-// PATCH /api/notifications/[id]  —  개별 알림 읽음 처리
+// DELETE /api/auth/delete  —  회원 탈퇴
 //
-// is_read 0 → 1 업데이트
-// AND user_id = ? 로 본인 알림만 처리 가능
+// users 테이블에서 삭제
+// ON DELETE CASCADE로 연관 데이터 자동 삭제:
+//   alert_conditions, notifications, trades, subscriptions
 // ═══════════════════════════════════════════════════════
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getUser } from '@/lib/auth';
 
-export async function PATCH(request, { params }) {
+export async function DELETE(request) {
   const user = getUser(request);
   if (!user) return NextResponse.json({ error: '인증 필요' }, { status: 401 });
 
-  const { id } = await params;
-
-  await pool.execute(
-    'UPDATE notifications SET is_read=1 WHERE id=? AND user_id=?',
-    [id, user.id]
-  );
+  await pool.execute('DELETE FROM users WHERE id = ?', [user.id]);
   return NextResponse.json({ success: true });
 }

@@ -1,22 +1,21 @@
 // ═══════════════════════════════════════════════════════
-// PATCH /api/notifications/[id]  —  개별 알림 읽음 처리
+// DELETE /api/subscriptions/[category]  —  구독 해지
 //
-// is_read 0 → 1 업데이트
-// AND user_id = ? 로 본인 알림만 처리 가능
+// AND user_id = ? 로 본인 구독만 삭제 가능
 // ═══════════════════════════════════════════════════════
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getUser } from '@/lib/auth';
 
-export async function PATCH(request, { params }) {
+export async function DELETE(request, { params }) {
   const user = getUser(request);
   if (!user) return NextResponse.json({ error: '인증 필요' }, { status: 401 });
 
-  const { id } = await params;
+  const { category } = await params;
 
   await pool.execute(
-    'UPDATE notifications SET is_read=1 WHERE id=? AND user_id=?',
-    [id, user.id]
+    'DELETE FROM subscriptions WHERE user_id = ? AND category = ?',
+    [user.id, category]
   );
   return NextResponse.json({ success: true });
 }

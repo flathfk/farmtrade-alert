@@ -1,9 +1,8 @@
 // ═══════════════════════════════════════════════════════
-// GET  /api/alerts  —  내 알림 조건 목록 조회 (최신순)
-// POST /api/alerts  —  알림 조건 등록
+// GET  /api/subscriptions  —  내 구독 카테고리 목록
+// POST /api/subscriptions  —  카테고리 구독 추가
 //
-// 알림 조건: 특정 농산물이 기준가 이상/이하일 때 알림 생성
-// AND user_id = ? 로 본인 데이터만 접근 가능 (권한 검증)
+// INSERT IGNORE: UNIQUE KEY로 중복 구독 방지
 // ═══════════════════════════════════════════════════════
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
@@ -14,22 +13,21 @@ export async function GET(request) {
   if (!user) return NextResponse.json({ error: '인증 필요' }, { status: 401 });
 
   const [rows] = await pool.execute(
-    'SELECT * FROM alert_conditions WHERE user_id = ? ORDER BY created_at DESC',
+    'SELECT category FROM subscriptions WHERE user_id = ?',
     [user.id]
   );
-  return NextResponse.json({ alerts: rows });
+  return NextResponse.json({ subscriptions: rows.map(r => r.category) });
 }
 
 export async function POST(request) {
   const user = getUser(request);
   if (!user) return NextResponse.json({ error: '인증 필요' }, { status: 401 });
 
-  const { crop_code, crop_name, threshold_price, condition_type } = await request.json();
+  const { category } = await request.json();
 
-  const [result] = await pool.execute(
-    'INSERT INTO alert_conditions (user_id, crop_code, crop_name, threshold_price, condition_type) VALUES (?, ?, ?, ?, ?)',
-    [user.id, crop_code, crop_name, threshold_price, condition_type]
+  await pool.execute(
+    'INSERT IGNORE INTO subscriptions (user_id, category) VALUES (?, ?)',
+    [user.id, category]
   );
-
-  return NextResponse.json({ id: result.insertId }, { status: 201 });
+  return NextResponse.json({ success: true });
 }
